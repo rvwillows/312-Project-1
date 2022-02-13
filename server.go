@@ -31,6 +31,8 @@ var moved = "HTTP/1.1 302 Temporarily Moved"
 
 var notFound = "HTTP/1.1 404 Not Found"
 
+var noSniff = "X-Content-Type-Options: nosniff"
+
 var cr = "\r\n"
 
 func main() {
@@ -97,6 +99,8 @@ func contentResolve(path string) []byte {
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(mimetype)...)
 		response = append(response, []byte(cr)...)
+		response = append(response, []byte(noSniff)...)
+		response = append(response, []byte(cr)...)
 		response = append(response, []byte(length)...)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(cr)...)
@@ -135,6 +139,8 @@ func contentResolve(path string) []byte {
 		var response []byte = []byte(status)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(mimetype)...)
+		response = append(response, []byte(cr)...)
+		response = append(response, []byte(noSniff)...)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(length)...)
 		response = append(response, []byte(cr)...)
