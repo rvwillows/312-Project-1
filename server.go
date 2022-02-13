@@ -88,8 +88,6 @@ func contentResolve(path string) []byte {
 
 	// Check if it's a file
 	if strings.Contains(path, ".") {
-		//Remove the first / then load the file il;n
-		strings.Replace(path, "/", "", 1)
 		status = ok
 		var split = strings.Split(path, ".")
 		mimetype = types[split[len(split)-1]]
