@@ -17,8 +17,8 @@ var router = map[string]string{
 var types = map[string]string{
 	"txt":  "Content-Type: text/plain; charset=utf-8",
 	"html": "Content-Type: text/html; charset=utf-8",
-	"css":  "Content-Type: text/html; charset=utf-8",
-	"js":   "Content-Type: text/js; charset=utf-8",
+	"css":  "Content-Type: text/css; charset=utf-8",
+	"js":   "Content-Type: text/javascript; charset=utf-8",
 	"png":  "Content-Type: image/png",
 	"jpg":  "Content-Type: image/jpeg",
 	"jpeg": "Content-Type: image/jpeg",
@@ -139,8 +139,6 @@ func contentResolve(path string) []byte {
 		var response []byte = []byte(status)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(mimetype)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(noSniff)...)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(length)...)
 		response = append(response, []byte(cr)...)
