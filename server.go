@@ -1,11 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var router = map[string]string{
@@ -36,6 +43,29 @@ var noSniff = "X-Content-Type-Options: nosniff"
 var cr = "\r\n"
 
 func main() {
+	/*
+	   Connect to my cluster
+	*/
+	client, err := mongo.NewClient(options.Client().ApplyURI("<MONGODB_URI>"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer client.Disconnect(ctx)
+
+	/*
+	   List databases
+	*/
+	databases, err := client.ListDatabaseNames(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(databases)
+
 	fmt.Println("Starting server!")
 	ln, err := net.Listen("tcp", ":8000")
 	if err != nil {
