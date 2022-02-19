@@ -33,11 +33,6 @@ var types = map[string]string{
 	"json": "Content-Type: application/json",
 }
 
-type User struct {
-	email    string `bson:"email"`
-	username string `bson:"username"`
-}
-
 var ok = "HTTP/1.1 200 OK"
 
 var created = "HTTP/1.1 201 Created"
@@ -198,30 +193,27 @@ func postHandler(conn net.Conn, req []string) {
 	conn.Write([]byte(created))
 }
 
-func getUsers() []User {
-	var user User
-	var users []User
-	cursor, err := UserCollection.Find(ctx, bson.D{})
+func getUsers() []bson.M {
+	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	for cursor.Next(ctx) {
-		err := cursor.Decode(&user)
-		if err != nil {
-			log.Fatal(err)
-		}
-		users = append(users, user)
+	var users []bson.M
+	if err = cursor.All(ctx, &users); err != nil {
+		log.Fatal(err)
 	}
 	fmt.Println(users)
 	return users
 }
 
 func addUser(values []string) {
-	var entry = User{strings.TrimPrefix(values[0], "email="), strings.TrimPrefix(values[1], "username=")}
+	var email = strings.TrimPrefix(values[0], "email=")
+	var username = strings.TrimPrefix(values[1], "username=")
+	var entry = bson.D{{Key: "email", Value: email}, {Key: "username", Value: username}}
 	fmt.Println(entry)
 	result, err := UserCollection.InsertOne(ctx, entry)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(result.InsertedID)
+	fmt.Println(result)
 }
