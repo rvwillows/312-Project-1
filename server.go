@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -17,6 +18,7 @@ var router = map[string]string{
 	"/hello": "hello.txt",
 	"/hi":    "/hello",
 	"/":      "index.html",
+	"/users": "$users",
 }
 
 var types = map[string]string{
@@ -28,9 +30,17 @@ var types = map[string]string{
 	"jpg":  "Content-Type: image/jpeg",
 	"jpeg": "Content-Type: image/jpeg",
 	"mp4":  "Content-Type: video/mp4",
+	"json": "Content-Type: application/json",
+}
+
+type User struct {
+	email    string `bson:"email"`
+	username string `bson:"username"`
 }
 
 var ok = "HTTP/1.1 200 OK"
+
+var created = "HTTP/1.1 201 Created"
 
 var moved = "HTTP/1.1 302 Temporarily Moved"
 
@@ -40,24 +50,20 @@ var noSniff = "X-Content-Type-Options: nosniff"
 
 var cr = "\r\n"
 
+var UserCollection *mongo.Collection
+var ctx = context.TODO()
+
 func main() {
-	// Set client options
-	clientOptions := options.Client().ApplyURI("mongodb://mongo:27017")
-
-	// Connect to MongoDB
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017"))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// Check the connection
-	err = client.Ping(context.TODO(), nil)
-
+	err = client.Ping(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	database := client.Database("website")
+	UserCollection = database.Collection("users")
 	fmt.Println("Connected to MongoDB!")
 
 	fmt.Println("Starting server!")
@@ -111,7 +117,6 @@ func contentResolve(path string) []byte {
 	var mimetype string = ""
 	var length string = ""
 	var content []byte = nil
-
 	// Check if it's a file
 	if strings.Contains(path, ".") {
 		status = ok
@@ -140,6 +145,9 @@ func contentResolve(path string) []byte {
 			mimetype = types["txt"]
 			path = "404.txt"
 			// If it's another router path, send a redirect
+		} else if strings.HasPrefix(path, "$") {
+			// Check if it's a database call
+			getUsers()
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
 			path = "Location: " + path
@@ -179,5 +187,41 @@ func getHandler(conn net.Conn, req []string) {
 }
 
 func postHandler(conn net.Conn, req []string) {
+	var long_path string = strings.Split(req[0], " ")[1]
+	var path = strings.Split(long_path, "?")[0]
+	var values []string = strings.Split(strings.Split(long_path, "?")[1], "&")
+	var response = router[path]
 
+	if response == "$users" {
+		addUser(values)
+	}
+	conn.Write([]byte(created))
+}
+
+func getUsers() []User {
+	var user User
+	var users []User
+	cursor, err := UserCollection.Find(ctx, bson.D{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	for cursor.Next(ctx) {
+		err := cursor.Decode(&user)
+		if err != nil {
+			log.Fatal(err)
+		}
+		users = append(users, user)
+	}
+	fmt.Println(users)
+	return users
+}
+
+func addUser(values []string) {
+	var entry = User{strings.TrimPrefix(values[0], "email="), strings.TrimPrefix(values[1], "username=")}
+	fmt.Println(entry)
+	result, err := UserCollection.InsertOne(ctx, entry)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(result.InsertedID)
 }
