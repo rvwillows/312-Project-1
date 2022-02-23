@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -33,6 +35,12 @@ var types = map[string]string{
 	"json": "Content-Type: application/json",
 }
 
+type User struct {
+	Id       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Username string             `json:"username"`
+	Email    string             `json:"email"`
+}
+
 var ok = "HTTP/1.1 200 OK"
 
 var created = "HTTP/1.1 201 Created"
@@ -46,7 +54,7 @@ var noSniff = "X-Content-Type-Options: nosniff"
 var cr = "\r\n"
 
 var UserCollection *mongo.Collection
-var ctx = context.TODO()
+var ctx = context.Background()
 
 func main() {
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017"))
@@ -142,7 +150,25 @@ func contentResolve(path string) []byte {
 			// If it's another router path, send a redirect
 		} else if strings.HasPrefix(path, "$") {
 			// Check if it's a database call
-			getUsers()
+			status = ok
+			mimetype = types["json"]
+
+			content, err := json.Marshal(getUsers())
+			if err != nil {
+				log.Fatal(err)
+			}
+			length = "Content-Length: " + strconv.FormatInt(int64(len(content)), 10)
+			var response []byte = []byte(status)
+			response = append(response, []byte(cr)...)
+			response = append(response, []byte(mimetype)...)
+			response = append(response, []byte(cr)...)
+			response = append(response, []byte(length)...)
+			response = append(response, []byte(cr)...)
+			response = append(response, []byte(cr)...)
+			response = append(response, content...)
+			fmt.Println(string(response))
+			return response
+
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
 			path = "Location: " + path
@@ -193,27 +219,35 @@ func postHandler(conn net.Conn, req []string) {
 	conn.Write([]byte(created))
 }
 
-func getUsers() []bson.M {
+func getUsers() []User {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
-	var users []bson.M
-	if err = cursor.All(ctx, &users); err != nil {
-		log.Fatal(err)
+	result := User{}
+	users := []User{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		users = append(users, result)
+		fmt.Println(result)
 	}
 	fmt.Println(users)
 	return users
 }
 
 func addUser(values []string) {
-	var email = strings.TrimPrefix(values[0], "email=")
-	var username = strings.TrimPrefix(values[1], "username=")
-	var entry = bson.D{{Key: "email", Value: email}, {Key: "username", Value: username}}
-	fmt.Println(entry)
-	result, err := UserCollection.InsertOne(ctx, entry)
+	user := User{}
+	user.Id = primitive.NewObjectID()
+	user.Email = strings.TrimPrefix(values[0], "email=")
+	user.Username = strings.TrimPrefix(values[1], "username=")
+	fmt.Println(user.Email)
+	fmt.Println(user.Email)
+	result, err := UserCollection.InsertOne(ctx, user)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(result)
+	objectID := result.InsertedID.(primitive.ObjectID)
+	fmt.Println(objectID)
 }
