@@ -39,6 +39,12 @@ func handleConnection(conn net.Conn) {
 	if strings.HasPrefix(req[0], "POST") {
 		postHandler(conn, req)
 	}
+	if strings.HasPrefix(req[0], "PUT") {
+		putHandler(conn, req)
+	}
+	if strings.HasPrefix(req[0], "DELETE") {
+		deleteHandler(conn, req)
+	}
 	conn.Close()
 }
 
@@ -46,12 +52,18 @@ func contentResolve(path string) []byte {
 	var status string = ""
 	var mimetype string = ""
 	var content []byte = nil
+
 	// Check if it's a file
 	if strings.Contains(path, ".") {
 		status = ok
 		var split = strings.Split(path, ".")
 		mimetype = types[split[len(split)-1]]
 		content = loadFile(path)
+		if content == nil {
+			status = notFound
+			mimetype = types["txt"]
+			content = loadFile("404.txt")
+		}
 		var response []byte = makeResponse(status, mimetype, content)
 		return response
 
@@ -69,12 +81,14 @@ func contentResolve(path string) []byte {
 			status = ok
 			mimetype = types["json"]
 
-			content, err := json.Marshal(getUsers())
-			if err != nil {
-				log.Fatal(err)
+			if path == "$users" {
+				content, err := json.Marshal(getUsers())
+				if err != nil {
+					log.Fatal(err)
+				}
+				var response []byte = makeResponse(status, mimetype, content)
+				return response
 			}
-			var response []byte = makeResponse(status, mimetype, content)
-			return response
 
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
@@ -88,6 +102,11 @@ func contentResolve(path string) []byte {
 			mimetype = types[split[len(split)-1]]
 		}
 		content = loadFile(path)
+		if content == nil {
+			status = notFound
+			mimetype = types["txt"]
+			content = loadFile("404.txt")
+		}
 		var response []byte = makeResponse(status, mimetype, content)
 		return response
 	}
@@ -95,6 +114,28 @@ func contentResolve(path string) []byte {
 
 func getHandler(conn net.Conn, req []string) {
 	var path string = strings.Split(req[0], " ")[1]
+	for _, point := range exposed {
+		if strings.HasPrefix(path, point) {
+			var id = strings.TrimLeft(path, point)
+			if id != "" {
+				fmt.Println(id)
+				fmt.Println(point)
+				var user = getUser(id)
+				if user.Id == nil {
+					var response []byte = contentResolve("404")
+					conn.Write([]byte(response))
+					return
+				}
+				content, err := json.Marshal(user)
+				if err != nil {
+					log.Fatal(err)
+				}
+				var response = makeResponse(ok, types["json"], content)
+				conn.Write([]byte(response))
+				return
+			}
+		}
+	}
 	var response []byte = contentResolve(path)
 	conn.Write([]byte(response))
 }
@@ -103,10 +144,63 @@ func postHandler(conn net.Conn, req []string) {
 	var long_path string = strings.Split(req[0], " ")[1]
 	var path = strings.Split(long_path, "?")[0]
 	var values []string = strings.Split(strings.Split(long_path, "?")[1], "&")
-	var response = router[path]
-
-	if response == "$users" {
-		addUser(values)
+	var action = router[path]
+	var response []byte
+	for _, point := range exposed {
+		if strings.HasPrefix(path, point) {
+			var id = strings.TrimLeft(path, point)
+			if id != "" {
+				fmt.Println(id)
+				return
+			}
+		}
 	}
-	conn.Write([]byte(created))
+	if action == "$users" {
+		content, err := json.Marshal(addUser(values))
+		if err != nil {
+			log.Fatal(err)
+		}
+		response = makeResponse(created, types["json"], content)
+	}
+	conn.Write([]byte(response))
+}
+
+func putHandler(conn net.Conn, req []string) {
+	var long_path string = strings.Split(req[0], " ")[1]
+	var path string = strings.Split(req[0], " ")[1]
+	var values []string = strings.Split(strings.Split(long_path, "?")[1], "&")
+	for _, point := range exposed {
+		if strings.HasPrefix(path, point) {
+			var id = strings.TrimLeft(path, point)
+			if id != "" {
+				fmt.Println(id)
+				content, err := json.Marshal(updateUser(values))
+				if err != nil {
+					log.Fatal(err)
+				}
+				var response = makeResponse(ok, types["json"], content)
+				conn.Write([]byte(response))
+				return
+			}
+		}
+	}
+}
+
+func deleteHandler(conn net.Conn, req []string) {
+	var path string = strings.Split(req[0], " ")[1]
+	for _, point := range exposed {
+		if strings.HasPrefix(path, point) {
+			var id = strings.TrimLeft(path, point)
+			if id != "" {
+				fmt.Println(id)
+				content, err := json.Marshal(deleteUser(id))
+				if err != nil {
+					log.Fatal(err)
+				}
+				var response = makeResponse(ok, types["json"], content)
+				conn.Write([]byte(response))
+				return
+			}
+		}
+	}
 }

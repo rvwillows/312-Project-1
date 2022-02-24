@@ -30,6 +30,31 @@ func connect(uri string) {
 	fmt.Println("Connected to MongoDB!")
 }
 
+func getUser(id string) UserButBetter {
+	userId := new(big.Int)
+	userId.SetString(id, 10)
+
+	id = fmt.Sprintf("%x", userId)
+
+	var result User
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return UserButBetter{}
+	}
+
+	err = UserCollection.
+		FindOne(ctx, bson.D{{"_id", objectId}}).
+		Decode(&result)
+	if err != nil {
+		return UserButBetter{}
+	}
+	resultId := new(big.Int)
+	resultId.SetString(result.Id.Hex(), 16)
+	user := UserButBetter{Id: resultId, Email: result.Email, Username: result.Username}
+	return user
+
+}
+
 func getUsers() []UserButBetter {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -51,7 +76,7 @@ func getUsers() []UserButBetter {
 	return users
 }
 
-func addUser(values []string) {
+func addUser(values []string) UserButBetter {
 	user := User{}
 	user.Id = primitive.NewObjectID()
 	user.Email = strings.TrimPrefix(values[0], "email=")
@@ -63,5 +88,17 @@ func addUser(values []string) {
 		log.Fatal(err)
 	}
 	objectID := result.InsertedID.(primitive.ObjectID)
-	fmt.Println(objectID)
+	id := new(big.Int)
+	id.SetString(objectID.Hex(), 16)
+	betterUser := UserButBetter{Id: id, Email: user.Email, Username: user.Username}
+	fmt.Println(betterUser)
+	return betterUser
+}
+
+func updateUser(values []string) UserButBetter {
+	return UserButBetter{}
+}
+
+func deleteUser(id string) bool {
+	return false
 }

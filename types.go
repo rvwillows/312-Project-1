@@ -13,6 +13,10 @@ var router = map[string]string{
 	"/users": "$users",
 }
 
+var exposed = []string{
+	"/users",
+}
+
 var types = map[string]string{
 	"txt":  "Content-Type: text/plain; charset=utf-8",
 	"html": "Content-Type: text/html; charset=utf-8",
@@ -40,6 +44,8 @@ type UserButBetter struct {
 var ok = "HTTP/1.1 200 OK"
 
 var created = "HTTP/1.1 201 Created"
+
+var noContent = "HTTP/1.1 204 No Content"
 
 var moved = "HTTP/1.1 302 Temporarily Moved"
 
