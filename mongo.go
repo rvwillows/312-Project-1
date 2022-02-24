@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/big"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -29,18 +30,21 @@ func connect(uri string) {
 	fmt.Println("Connected to MongoDB!")
 }
 
-func getUsers() []User {
+func getUsers() []UserButBetter {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	result := User{}
-	users := []User{}
+	users := []UserButBetter{}
 	for cursor.Next(ctx) {
 		if err = cursor.Decode(&result); err != nil {
 			log.Fatal(err)
 		}
-		users = append(users, result)
+		id := new(big.Int)
+		id.SetString(result.Id.Hex(), 16)
+		betterUser := UserButBetter{Id: id, Email: result.Email, Username: result.Username}
+		users = append(users, betterUser)
 		fmt.Println(result)
 	}
 	fmt.Println(users)

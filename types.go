@@ -1,6 +1,10 @@
 package main
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"math/big"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 var router = map[string]string{
 	"/hello": "hello.txt",
@@ -23,8 +27,14 @@ var types = map[string]string{
 
 type User struct {
 	Id       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	Username string             `json:"username"`
 	Email    string             `json:"email"`
+	Username string             `json:"username"`
+}
+
+type UserButBetter struct {
+	Id       *big.Int `bson:"_id" json:"id,omitempty"`
+	Email    string   `json:"email"`
+	Username string   `json:"username"`
 }
 
 var ok = "HTTP/1.1 200 OK"

@@ -24,16 +24,23 @@ func loadFile(path string) []byte {
 }
 
 func makeResponse(status string, mimetype string, content []byte) []byte {
-	var length = "Content-Length: " + strconv.FormatInt(int64(len(content)), 10)
+	var length = 0
+	if status != moved {
+		length = len(content)
+	}
 	var response []byte = []byte(status)
 	response = append(response, []byte(cr)...)
-	response = append(response, []byte(mimetype)...)
+	if status != moved {
+		response = append(response, []byte(mimetype)...)
+		response = append(response, []byte(cr)...)
+		response = append(response, []byte(noSniff)...)
+		response = append(response, []byte(cr)...)
+	}
+	response = append(response, []byte("Content-Length: "+strconv.FormatInt(int64(length), 10))...)
 	response = append(response, []byte(cr)...)
-	response = append(response, []byte(noSniff)...)
-	response = append(response, []byte(cr)...)
-	response = append(response, []byte(length)...)
-	response = append(response, []byte(cr)...)
-	response = append(response, []byte(cr)...)
+	if status != moved {
+		response = append(response, []byte(cr)...)
+	}
 	response = append(response, content...)
 	response = append(response, []byte(cr)...)
 	response = append(response, []byte(cr)...)
