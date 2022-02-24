@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"strings"
 )
 
@@ -46,7 +45,6 @@ func handleConnection(conn net.Conn) {
 func contentResolve(path string) []byte {
 	var status string = ""
 	var mimetype string = ""
-	var length string = ""
 	var content []byte = nil
 	// Check if it's a file
 	if strings.Contains(path, ".") {
@@ -54,17 +52,7 @@ func contentResolve(path string) []byte {
 		var split = strings.Split(path, ".")
 		mimetype = types[split[len(split)-1]]
 		content = loadFile(path)
-		length = "Content-Length: " + strconv.FormatInt(int64(len(content)), 10)
-		var response []byte = []byte(status)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(mimetype)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(noSniff)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(length)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, content...)
+		var response []byte = makeResponse(status, mimetype, content)
 		return response
 
 		// If not, then it's a path
@@ -85,29 +73,13 @@ func contentResolve(path string) []byte {
 			if err != nil {
 				log.Fatal(err)
 			}
-			length = "Content-Length: " + strconv.FormatInt(int64(len(content)), 10)
-			var response []byte = []byte(status)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(mimetype)...)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(length)...)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(cr)...)
-			response = append(response, content...)
-			fmt.Println(string(response))
+			var response []byte = makeResponse(status, mimetype, content)
 			return response
 
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
-			path = "Location: " + path
-			length = "Content-Length: 0"
-			var response []byte = []byte(status)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(length)...)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(path)...)
-			response = append(response, []byte(cr)...)
-			response = append(response, []byte(cr)...)
+			content = []byte("Location: " + path)
+			var response []byte = makeResponse(status, mimetype, content)
 			return response
 			// Otherwise, its a file and we can simply load in
 		} else {
@@ -116,15 +88,7 @@ func contentResolve(path string) []byte {
 			mimetype = types[split[len(split)-1]]
 		}
 		content = loadFile(path)
-		length = "Content-Length: " + strconv.FormatInt(int64(len(content)), 10)
-		var response []byte = []byte(status)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(mimetype)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(length)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, []byte(cr)...)
-		response = append(response, content...)
+		var response []byte = makeResponse(status, mimetype, content)
 		return response
 	}
 }
