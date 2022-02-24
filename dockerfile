@@ -1,5 +1,4 @@
 FROM golang:1.17.6
-RUN apt-get update
 # Set the home directory to /root
 ENV HOME /root
 # cd into the home directory
