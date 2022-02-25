@@ -47,7 +47,7 @@ var created = "HTTP/1.1 201 Created"
 
 var noContent = "HTTP/1.1 204 No Content"
 
-var moved = "HTTP/1.1 302 Temporarily Moved"
+var moved = "HTTP/1.1 301 Moved Permanently"
 
 var notFound = "HTTP/1.1 404 Not Found"
 
