@@ -174,7 +174,13 @@ func putHandler(conn net.Conn, req []string) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
 				fmt.Println(id)
-				content, err := json.Marshal(updateUser(values))
+				var user = updateUser(values, id)
+				if user.Id == nil {
+					var response []byte = contentResolve("404")
+					conn.Write([]byte(response))
+					return
+				}
+				content, err := json.Marshal(user)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -193,13 +199,15 @@ func deleteHandler(conn net.Conn, req []string) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
 				fmt.Println(id)
-				content, err := json.Marshal(deleteUser(id))
-				if err != nil {
-					log.Fatal(err)
+				if deleteUser(id) {
+					var response = makeResponse(noContent, types["json"], []byte(nil))
+					conn.Write([]byte(response))
+					return
+				} else {
+					var response []byte = contentResolve("404")
+					conn.Write([]byte(response))
+					return
 				}
-				var response = makeResponse(ok, types["json"], content)
-				conn.Write([]byte(response))
-				return
 			}
 		}
 	}

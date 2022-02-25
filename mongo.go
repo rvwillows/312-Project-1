@@ -43,7 +43,7 @@ func getUser(id string) UserButBetter {
 	}
 
 	err = UserCollection.
-		FindOne(ctx, bson.D{{"_id", objectId}}).
+		FindOne(ctx, bson.D{{Key: "_id", Value: objectId}}).
 		Decode(&result)
 	if err != nil {
 		return UserButBetter{}
@@ -82,7 +82,7 @@ func addUser(values []string) UserButBetter {
 	user.Email = strings.TrimPrefix(values[0], "email=")
 	user.Username = strings.TrimPrefix(values[1], "username=")
 	fmt.Println(user.Email)
-	fmt.Println(user.Email)
+	fmt.Println(user.Username)
 	result, err := UserCollection.InsertOne(ctx, user)
 	if err != nil {
 		log.Fatal(err)
@@ -95,10 +95,63 @@ func addUser(values []string) UserButBetter {
 	return betterUser
 }
 
-func updateUser(values []string) UserButBetter {
-	return UserButBetter{}
+func updateUser(values []string, id string) UserButBetter {
+	user := User{}
+	user.Id = primitive.NewObjectID()
+	user.Email = strings.TrimPrefix(values[0], "email=")
+	user.Username = strings.TrimPrefix(values[1], "username=")
+	fmt.Println(user.Email)
+	fmt.Println(user.Username)
+
+	userId := new(big.Int)
+	userId.SetString(id, 10)
+
+	id = fmt.Sprintf("%x", userId)
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return UserButBetter{}
+	}
+
+	filter := bson.D{{Key: "_id", Value: objectId}}
+	after := options.After
+
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "email", Value: user.Email}, {Key: "username", Value: user.Username}}}}
+
+	returnOpt := options.FindOneAndUpdateOptions{
+		ReturnDocument: &after,
+	}
+	fmt.Println(update)
+	fmt.Println(filter)
+
+	updateResult := UserCollection.FindOneAndUpdate(ctx, filter, update, &returnOpt)
+	var result User
+	_ = updateResult.Decode(&result)
+
+	newid := new(big.Int)
+	newid.SetString(string(result.Id.Hex()), 16)
+	betterUser := UserButBetter{Id: newid, Email: result.Email, Username: result.Username}
+	fmt.Println(betterUser)
+	return betterUser
 }
 
 func deleteUser(id string) bool {
+	userId := new(big.Int)
+	userId.SetString(id, 10)
+
+	id = fmt.Sprintf("%x", userId)
+	objectId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return false
+	}
+
+	filter := bson.D{{Key: "_id", Value: objectId}}
+
+	result, err := UserCollection.DeleteOne(ctx, filter)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if result.DeletedCount != 0 {
+		return true
+	}
 	return false
 }
