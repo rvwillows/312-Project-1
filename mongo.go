@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -70,19 +69,12 @@ func getUsers() []UserButBetter {
 		id.SetString(result.Id.Hex(), 16)
 		betterUser := UserButBetter{Id: id, Email: result.Email, Username: result.Username}
 		users = append(users, betterUser)
-		fmt.Println(result)
 	}
-	fmt.Println(users)
 	return users
 }
 
-func addUser(values []string) UserButBetter {
-	user := User{}
+func addUser(user User) UserButBetter {
 	user.Id = primitive.NewObjectID()
-	user.Email = strings.TrimPrefix(values[0], "email=")
-	user.Username = strings.TrimPrefix(values[1], "username=")
-	fmt.Println(user.Email)
-	fmt.Println(user.Username)
 	result, err := UserCollection.InsertOne(ctx, user)
 	if err != nil {
 		log.Fatal(err)
@@ -91,17 +83,11 @@ func addUser(values []string) UserButBetter {
 	id := new(big.Int)
 	id.SetString(objectID.Hex(), 16)
 	betterUser := UserButBetter{Id: id, Email: user.Email, Username: user.Username}
-	fmt.Println(betterUser)
 	return betterUser
 }
 
-func updateUser(values []string, id string) UserButBetter {
-	user := User{}
+func updateUser(user User, id string) UserButBetter {
 	user.Id = primitive.NewObjectID()
-	user.Email = strings.TrimPrefix(values[0], "email=")
-	user.Username = strings.TrimPrefix(values[1], "username=")
-	fmt.Println(user.Email)
-	fmt.Println(user.Username)
 
 	userId := new(big.Int)
 	userId.SetString(id, 10)
@@ -120,8 +106,6 @@ func updateUser(values []string, id string) UserButBetter {
 	returnOpt := options.FindOneAndUpdateOptions{
 		ReturnDocument: &after,
 	}
-	fmt.Println(update)
-	fmt.Println(filter)
 
 	updateResult := UserCollection.FindOneAndUpdate(ctx, filter, update, &returnOpt)
 	var result User
@@ -130,7 +114,6 @@ func updateUser(values []string, id string) UserButBetter {
 	newid := new(big.Int)
 	newid.SetString(string(result.Id.Hex()), 16)
 	betterUser := UserButBetter{Id: newid, Email: result.Email, Username: result.Username}
-	fmt.Println(betterUser)
 	return betterUser
 }
 

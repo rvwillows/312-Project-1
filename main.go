@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -35,14 +36,11 @@ func handleConnection(conn net.Conn) {
 	req := strings.Split(string(buffer), "\r\n")
 	if strings.HasPrefix(req[0], "GET") {
 		getHandler(conn, req)
-	}
-	if strings.HasPrefix(req[0], "POST") {
+	} else if strings.HasPrefix(req[0], "POST") {
 		postHandler(conn, req)
-	}
-	if strings.HasPrefix(req[0], "PUT") {
+	} else if strings.HasPrefix(req[0], "PUT") {
 		putHandler(conn, req)
-	}
-	if strings.HasPrefix(req[0], "DELETE") {
+	} else if strings.HasPrefix(req[0], "DELETE") {
 		deleteHandler(conn, req)
 	}
 	conn.Close()
@@ -118,8 +116,6 @@ func getHandler(conn net.Conn, req []string) {
 		if strings.HasPrefix(path, point) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
-				fmt.Println(id)
-				fmt.Println(point)
 				var user = getUser(id)
 				if user.Id == nil {
 					var response []byte = contentResolve("404")
@@ -143,20 +139,24 @@ func getHandler(conn net.Conn, req []string) {
 func postHandler(conn net.Conn, req []string) {
 	var long_path string = strings.Split(req[0], " ")[1]
 	var path = strings.Split(long_path, "?")[0]
-	var values []string = strings.Split(strings.Split(long_path, "?")[1], "&")
+	var values string = req[len(req)-1]
 	var action = router[path]
 	var response []byte
 	for _, point := range exposed {
 		if strings.HasPrefix(path, point) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
-				fmt.Println(id)
 				return
 			}
 		}
 	}
 	if action == "$users" {
-		content, err := json.Marshal(addUser(values))
+		user := User{}
+		err := json.Unmarshal(bytes.Trim([]byte(values), "\x00"), &user)
+		if err != nil {
+			log.Fatal(err)
+		}
+		content, err := json.Marshal(addUser(user))
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -166,21 +166,24 @@ func postHandler(conn net.Conn, req []string) {
 }
 
 func putHandler(conn net.Conn, req []string) {
-	var long_path string = strings.Split(req[0], " ")[1]
 	var path string = strings.Split(req[0], " ")[1]
-	var values []string = strings.Split(strings.Split(long_path, "?")[1], "&")
+	var values string = req[len(req)-1]
 	for _, point := range exposed {
 		if strings.HasPrefix(path, point) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
-				fmt.Println(id)
-				var user = updateUser(values, id)
-				if user.Id == nil {
+				user := User{}
+				err := json.Unmarshal(bytes.Trim([]byte(values), "\x00"), &user)
+				if err != nil {
+					log.Fatal(err)
+				}
+				var updatedUser = updateUser(user, id)
+				if updatedUser.Id == nil {
 					var response []byte = contentResolve("404")
 					conn.Write([]byte(response))
 					return
 				}
-				content, err := json.Marshal(user)
+				content, err := json.Marshal(updatedUser)
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -198,7 +201,6 @@ func deleteHandler(conn net.Conn, req []string) {
 		if strings.HasPrefix(path, point) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
-				fmt.Println(id)
 				if deleteUser(id) {
 					var response = makeResponse(noContent, types["json"], []byte(nil))
 					conn.Write([]byte(response))
