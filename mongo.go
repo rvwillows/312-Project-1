@@ -13,6 +13,7 @@ import (
 )
 
 var UserCollection *mongo.Collection
+var CommentCollection *mongo.Collection
 var ctx = context.Background()
 
 func connect(uri string) {
@@ -26,6 +27,7 @@ func connect(uri string) {
 	}
 	database := client.Database("website")
 	UserCollection = database.Collection("users")
+	CommentCollection = database.Collection("comments")
 	fmt.Println("Connected to MongoDB!")
 }
 
@@ -54,6 +56,22 @@ func getUser(id string) UserButBetter {
 
 }
 
+func getComments() []Comment {
+	cursor, err := CommentCollection.Find(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result := Comment{}
+	comments := []Comment{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		comments = append(comments, result)
+	}
+	return comments
+}
+
 func getUsers() []UserButBetter {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -71,6 +89,14 @@ func getUsers() []UserButBetter {
 		users = append(users, betterUser)
 	}
 	return users
+}
+
+func addComment(comment Comment) {
+	comment.Id = primitive.NewObjectID()
+	_, err := CommentCollection.InsertOne(ctx, comment)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func addUser(user User) UserButBetter {

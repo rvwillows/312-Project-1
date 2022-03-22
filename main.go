@@ -33,10 +33,13 @@ func handleConnection(conn net.Conn) {
 	if err != nil {
 		fmt.Println("Read error: ", err.Error())
 	}
+
 	req := strings.Split(string(buffer), "\r\n")
 	if strings.HasPrefix(req[0], "GET") {
 		getHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "POST") {
+		parseRequest(buffer)
+		fmt.Println(getComments())
 		postHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "PUT") {
 		putHandler(conn, req)
@@ -161,6 +164,10 @@ func postHandler(conn net.Conn, req []string) {
 			log.Fatal(err)
 		}
 		response = makeResponse(created, types["json"], content)
+	}
+	if action == "$image-upload" {
+		var content = []byte("Location:  /")
+		response = makeResponse(moved, "", content)
 	}
 	conn.Write([]byte(response))
 }

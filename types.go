@@ -7,10 +7,11 @@ import (
 )
 
 var router = map[string]string{
-	"/hello": "hello.txt",
-	"/hi":    "/hello",
-	"/":      "index.html",
-	"/users": "$users",
+	"/hello":        "hello.txt",
+	"/hi":           "/hello",
+	"/":             "index.html",
+	"/users":        "$users",
+	"/image-upload": "$image-upload",
 }
 
 var exposed = []string{
@@ -39,6 +40,12 @@ type UserButBetter struct {
 	Id       *big.Int `bson:"_id" json:"id,omitempty"`
 	Email    string   `json:"email"`
 	Username string   `json:"username"`
+}
+
+type Comment struct {
+	Id      primitive.ObjectID `bson:"_id" json:"id,omitempty"`
+	Message string             `json:"message"`
+	Image   string             `json:"image"`
 }
 
 var ok = "HTTP/1.1 200 OK"
