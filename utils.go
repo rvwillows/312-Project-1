@@ -16,6 +16,14 @@ func loadFile(path string) []byte {
 	}
 	dat, err := os.ReadFile(path)
 	if err == nil {
+		if strings.Contains(path, "index.html") {
+			comments := getComments()
+			var commentString = ""
+			for _, comment := range comments {
+				commentString = commentString + "<br>" + comment.Message + "</br>"
+			}
+			dat = []byte(strings.Replace(string(dat), "{{data}}", commentString, 1))
+		}
 		return dat
 	} else {
 		fmt.Println("File read error: ", err.Error())
@@ -64,7 +72,7 @@ func parseRequest(buffer []byte) {
 				var subHeader = string(subBytes[0])
 				var subContent = subBytes[1]
 				if strings.Contains(subHeader, `name="comment"`) {
-					comment.Message = string(subContent)
+					comment.Message = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
 				} else if strings.Contains(subHeader, `name="upload"`) {
 					comment.Image = strings.Split(strings.Split(subHeader, "filename=")[1], "\r\n")[0]
 				}

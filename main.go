@@ -39,7 +39,6 @@ func handleConnection(conn net.Conn) {
 		getHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "POST") {
 		parseRequest(buffer)
-		fmt.Println(getComments())
 		postHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "PUT") {
 		putHandler(conn, req)
