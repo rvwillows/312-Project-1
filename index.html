@@ -18,6 +18,7 @@
 <img src="/image/kitten.jpg" alt="It's a flamingo" class="my_image"/>
 
 <form action="/image-upload" id="image-form" method="post" enctype="multipart/form-data">
+    <input value="GOOSE12345" name="xsrf_token" hidden>
     <label for="image-form-comment">Comment: </label>
     <textarea id="image-form-comment" name="comment" cols="40" rows="6"></textarea>
     <br/>

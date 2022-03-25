@@ -3,11 +3,23 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
 	"strings"
 )
+
+var tokens []string = nil
+
+func StringSliceContains(slice []string, str string) bool {
+	for _, s := range slice {
+		if s == str {
+			return true
+		}
+	}
+	return false
+}
 
 func loadFile(path string) []byte {
 	if strings.HasPrefix(path, "/") {
@@ -21,11 +33,16 @@ func loadFile(path string) []byte {
 			comments := getComments()
 			var commentString = ""
 			for _, comment := range comments {
-				commentString = commentString + "<br>" + comment.Image + "</br>"
-				commentString = commentString + "<br> <img src=" + comment.Image + "> </br>"
+				if comment.Image != "" {
+					commentString = commentString + "<br>" + comment.Image + "</br>"
+					commentString = commentString + "<br> <img src=" + comment.Id.Hex() + ".jpg" + "> </br>"
+				}
 				commentString = commentString + "<br>" + comment.Message + "</br>"
 			}
 			dat = []byte(strings.Replace(string(dat), "{{data}}", commentString, 1))
+			var token = fmt.Sprint((rand.Int63()))
+			tokens = append(tokens, token)
+			dat = []byte(strings.Replace(string(dat), "GOOSE12345", token, 1))
 		}
 		return dat
 	} else {
@@ -95,20 +112,29 @@ func parseRequest(buffer []byte, conn net.Conn) {
 		comment := Comment{}
 		var boundary = strings.Split(strings.Split(headers, "boundary=")[1], "\r\n")[0]
 		content := bytes.Split(body, []byte("--"+boundary))
+		var image []byte = nil
 		for _, c := range content {
 			if bytes.Contains(c, []byte("\r\n\r\n")) {
 				subBytes := bytes.Split(c, []byte("\r\n\r\n"))
 				var subHeader = string(subBytes[0])
-				var subContent = subBytes[1]
+				var subContent = bytes.ReplaceAll(subBytes[1], []byte("\r\n"), []byte(""))
 				if strings.Contains(subHeader, `name="comment"`) {
 					comment.Message = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+				} else if strings.Contains(subHeader, `name="xsrf_token"`) {
+
+					if !StringSliceContains(tokens, string(subContent)) {
+						var response = makeResponse(forbidden, types["txt"], loadFile("403.txt"))
+						conn.Write([]byte(response))
+						return
+					}
 				} else if strings.Contains(subHeader, `name="upload"`) {
 					comment.Image = strings.ReplaceAll(strings.Split(strings.Split(subHeader, "filename=")[1], "\r\n")[0], `"`, "")
-					saveFile(comment.Image, subContent)
-					fmt.Println(len(loadFile(comment.Image)))
+					image = subContent
 				}
 			}
 		}
-		addComment(comment)
+		id := addComment(comment)
+		saveFile(id+".jpg", image)
+		fmt.Println(len(loadFile(comment.Image)))
 	}
 }

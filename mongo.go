@@ -91,12 +91,14 @@ func getUsers() []UserButBetter {
 	return users
 }
 
-func addComment(comment Comment) {
+func addComment(comment Comment) string {
 	comment.Id = primitive.NewObjectID()
-	_, err := CommentCollection.InsertOne(ctx, comment)
+	result, err := CommentCollection.InsertOne(ctx, comment)
 	if err != nil {
 		log.Fatal(err)
 	}
+	objectID := result.InsertedID.(primitive.ObjectID)
+	return objectID.Hex()
 }
 
 func addUser(user User) UserButBetter {
