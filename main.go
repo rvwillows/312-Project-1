@@ -38,7 +38,7 @@ func handleConnection(conn net.Conn) {
 	if strings.HasPrefix(req[0], "GET") {
 		getHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "POST") {
-		parseRequest(buffer)
+		parseRequest(buffer, conn)
 		postHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "PUT") {
 		putHandler(conn, req)
