@@ -117,12 +117,12 @@ func parseRequest(buffer []byte, conn net.Conn) {
 			if bytes.Contains(c, []byte("\r\n\r\n")) {
 				subBytes := bytes.Split(c, []byte("\r\n\r\n"))
 				var subHeader = string(subBytes[0])
-				var subContent = bytes.ReplaceAll(subBytes[1], []byte("\r\n"), []byte(""))
+				var subContent = subBytes[1]
 				if strings.Contains(subHeader, `name="comment"`) {
 					comment.Message = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
 				} else if strings.Contains(subHeader, `name="xsrf_token"`) {
 
-					if !StringSliceContains(tokens, string(subContent)) {
+					if !StringSliceContains(tokens, strings.ReplaceAll(string(subContent), "\r\n", "")) {
 						var response = makeResponse(forbidden, types["txt"], loadFile("403.txt"))
 						conn.Write([]byte(response))
 						return
