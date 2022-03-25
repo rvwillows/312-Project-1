@@ -86,8 +86,6 @@ func makeResponse(status string, mimetype string, content []byte) []byte {
 		response = append(response, []byte(cr)...)
 	}
 	response = append(response, content...)
-	response = append(response, []byte(cr)...)
-	response = append(response, []byte(cr)...)
 	return response
 }
 
@@ -115,7 +113,7 @@ func parseRequest(buffer []byte, conn net.Conn) {
 		var image []byte = nil
 		for _, c := range content {
 			if bytes.Contains(c, []byte("\r\n\r\n")) {
-				subBytes := bytes.Split(c, []byte("\r\n\r\n"))
+				subBytes := bytes.SplitN(c, []byte("\r\n\r\n"), 2)
 				var subHeader = string(subBytes[0])
 				var subContent = subBytes[1]
 				if strings.Contains(subHeader, `name="comment"`) {
@@ -135,6 +133,5 @@ func parseRequest(buffer []byte, conn net.Conn) {
 		}
 		id := addComment(comment)
 		saveFile(id+".jpg", image)
-		fmt.Println(len(loadFile(comment.Image)))
 	}
 }
