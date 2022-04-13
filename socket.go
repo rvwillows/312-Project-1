@@ -49,8 +49,8 @@ func webSocketServer(conn net.Conn) {
 		var payloadIndex = 2
 		if length == 126 {
 			//Read the next 16 bits
-			length = int(binary.BigEndian.Uint16(buffer[2:3]))
-			payloadIndex = 3
+			length = int(binary.BigEndian.Uint16(buffer[2:4]))
+			payloadIndex = 4
 
 		} else if length == 127 {
 			//Read the next 64 bits
@@ -113,9 +113,12 @@ func webSocketServer(conn net.Conn) {
 				for _, c := range actitveConnections {
 					c.Write(res)
 				}
-			} else if result["messsageType"] == "webRTC-offer" || result["messageType"] == "webRTC-answer" || result["messageType"] == "webRTC-candidate" {
-				for _, c := range actitveConnections {
-					c.Write(buffer)
+			} else if result["messageType"] == "webRTC-offer" || result["messageType"] == "webRTC-answer" || result["messageType"] == "webRTC-candidate" {
+				var frame = makeFrame(payload)
+				for u, c := range actitveConnections {
+					if u != username {
+						c.Write(frame)
+					}
 				}
 			}
 		}
