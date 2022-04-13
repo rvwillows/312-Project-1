@@ -89,22 +89,33 @@ func webSocketServer(conn net.Conn) {
 		}
 
 		if opcode == 8 {
-			// Close the connection
+			delete(actitveConnections, username)
+			var res = makeFrame([]byte(""))
+			conn.Write(res)
+
 			return
 		}
 		if opcode == 1 {
 			// Format is text
-			fmt.Println(string(payload))
 			var result map[string]string
 			json.Unmarshal(payload, &result)
 
 			if result["messageType"] == "chatMessage" {
-				message := map[string]string{"messageType": "chatMessage", "username": username, "comment": strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(result["comment"], "&", "&amp;"), "<", "&lt;"), ">", "&gt;")}
+				var messageText = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(result["comment"], "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+				messageObject := new(Message)
+				messageObject.Message = messageText
+				messageObject.Username = username
+				addMessage(*messageObject)
+
+				message := map[string]string{"messageType": "chatMessage", "username": username, "comment": messageText}
 				response, _ := json.Marshal(&message)
-				fmt.Println(string(response))
 				var res = makeFrame(response)
 				for _, c := range actitveConnections {
 					c.Write(res)
+				}
+			} else if result["messsageType"] == "webRTC-offer" || result["messageType"] == "webRTC-answer" || result["messageType"] == "webRTC-candidate" {
+				for _, c := range actitveConnections {
+					c.Write(buffer)
 				}
 			}
 		}

@@ -14,6 +14,7 @@ import (
 
 var UserCollection *mongo.Collection
 var CommentCollection *mongo.Collection
+var MessageCollection *mongo.Collection
 var ctx = context.Background()
 
 func connect(uri string) {
@@ -28,6 +29,7 @@ func connect(uri string) {
 	database := client.Database("website")
 	UserCollection = database.Collection("users")
 	CommentCollection = database.Collection("comments")
+	MessageCollection = database.Collection("message")
 	fmt.Println("Connected to MongoDB!")
 }
 
@@ -72,6 +74,22 @@ func getComments() []Comment {
 	return comments
 }
 
+func getMessages() []Message {
+	cursor, err := MessageCollection.Find(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result := Message{}
+	messages := []Message{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		messages = append(messages, result)
+	}
+	return messages
+}
+
 func getUsers() []UserButBetter {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
@@ -94,6 +112,15 @@ func getUsers() []UserButBetter {
 func addComment(comment Comment) string {
 	comment.Id = primitive.NewObjectID()
 	result, err := CommentCollection.InsertOne(ctx, comment)
+	if err != nil {
+		log.Fatal(err)
+	}
+	objectID := result.InsertedID.(primitive.ObjectID)
+	return objectID.Hex()
+}
+
+func addMessage(message Message) string {
+	result, err := MessageCollection.InsertOne(ctx, message)
 	if err != nil {
 		log.Fatal(err)
 	}

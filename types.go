@@ -48,6 +48,11 @@ type Comment struct {
 	Image   string             `json:"image"`
 }
 
+type Message struct {
+	Message  string `json:"comment"`
+	Username string `json:"username"`
+}
+
 var switching = "HTTP/1.1 101 Switching Protocols"
 
 var ok = "HTTP/1.1 200 OK"

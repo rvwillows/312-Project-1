@@ -118,6 +118,14 @@ func getHandler(conn net.Conn, req []string) {
 		var response = webSocketHandshake(conn, req)
 		conn.Write(response)
 		webSocketServer(conn)
+	} else if path == "/chat-history" {
+		content, err := json.Marshal(getMessages())
+		if err != nil {
+			log.Fatal(err)
+		}
+		var response = makeResponse(ok, types["json"], content)
+		conn.Write([]byte(response))
+		return
 	} else {
 		for _, point := range exposed {
 			if strings.HasPrefix(path, point) {
