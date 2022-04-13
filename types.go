@@ -48,6 +48,8 @@ type Comment struct {
 	Image   string             `json:"image"`
 }
 
+var switching = "HTTP/1.1 101 Switching Protocols"
+
 var ok = "HTTP/1.1 200 OK"
 
 var created = "HTTP/1.1 201 Created"
@@ -63,3 +65,5 @@ var notFound = "HTTP/1.1 404 Not Found"
 var noSniff = "X-Content-Type-Options: nosniff"
 
 var cr = "\r\n"
+
+var GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"

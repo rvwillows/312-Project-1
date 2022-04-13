@@ -69,23 +69,29 @@ func saveFile(path string, data []byte) {
 
 func makeResponse(status string, mimetype string, content []byte) []byte {
 	var length = 0
-	if status != moved {
+	if mimetype != "" {
 		length = len(content)
 	}
 	var response []byte = []byte(status)
 	response = append(response, []byte(cr)...)
-	if status != moved {
+	if mimetype != "" {
 		response = append(response, []byte(mimetype)...)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(noSniff)...)
 		response = append(response, []byte(cr)...)
 	}
-	response = append(response, []byte("Content-Length: "+strconv.FormatInt(int64(length), 10))...)
-	response = append(response, []byte(cr)...)
-	if status != moved {
+	if length != 0 {
+		response = append(response, []byte("Content-Length: "+strconv.FormatInt(int64(length), 10))...)
+		response = append(response, []byte(cr)...)
+	}
+	if mimetype != "" {
 		response = append(response, []byte(cr)...)
 	}
 	response = append(response, content...)
+	if mimetype == "" {
+		response = append(response, []byte(cr)...)
+		response = append(response, []byte(cr)...)
+	}
 	return response
 }
 

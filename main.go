@@ -114,28 +114,34 @@ func contentResolve(path string) []byte {
 
 func getHandler(conn net.Conn, req []string) {
 	var path string = strings.Split(req[0], " ")[1]
-	for _, point := range exposed {
-		if strings.HasPrefix(path, point) {
-			var id = strings.TrimLeft(path, point)
-			if id != "" {
-				var user = getUser(id)
-				if user.Id == nil {
-					var response []byte = contentResolve("404")
+	if path == "/websocket" {
+		var response = webSocketHandshake(conn, req)
+		conn.Write(response)
+		webSocketServer(conn)
+	} else {
+		for _, point := range exposed {
+			if strings.HasPrefix(path, point) {
+				var id = strings.TrimLeft(path, point)
+				if id != "" {
+					var user = getUser(id)
+					if user.Id == nil {
+						var response []byte = contentResolve("404")
+						conn.Write([]byte(response))
+						return
+					}
+					content, err := json.Marshal(user)
+					if err != nil {
+						log.Fatal(err)
+					}
+					var response = makeResponse(ok, types["json"], content)
 					conn.Write([]byte(response))
 					return
 				}
-				content, err := json.Marshal(user)
-				if err != nil {
-					log.Fatal(err)
-				}
-				var response = makeResponse(ok, types["json"], content)
-				conn.Write([]byte(response))
-				return
 			}
 		}
+		var response []byte = contentResolve(path)
+		conn.Write([]byte(response))
 	}
-	var response []byte = contentResolve(path)
-	conn.Write([]byte(response))
 }
 
 func postHandler(conn net.Conn, req []string) {
