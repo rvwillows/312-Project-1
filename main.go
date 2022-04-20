@@ -64,7 +64,7 @@ func contentResolve(path string) []byte {
 			mimetype = types["txt"]
 			content = loadFile("404.txt")
 		}
-		var response []byte = makeResponse(status, mimetype, content)
+		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response
 
 		// If not, then it's a path
@@ -86,14 +86,14 @@ func contentResolve(path string) []byte {
 				if err != nil {
 					log.Fatal(err)
 				}
-				var response []byte = makeResponse(status, mimetype, content)
+				var response []byte = makeResponse(status, mimetype, nil, content)
 				return response
 			}
 
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
 			content = []byte("Location: " + path)
-			var response []byte = makeResponse(status, mimetype, content)
+			var response []byte = makeResponse(status, mimetype, nil, content)
 			return response
 			// Otherwise, its a file and we can simply load in
 		} else {
@@ -107,7 +107,7 @@ func contentResolve(path string) []byte {
 			mimetype = types["txt"]
 			content = loadFile("404.txt")
 		}
-		var response []byte = makeResponse(status, mimetype, content)
+		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response
 	}
 }
@@ -123,7 +123,7 @@ func getHandler(conn net.Conn, req []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		var response = makeResponse(ok, types["json"], content)
+		var response = makeResponse(ok, types["json"], nil, content)
 		conn.Write([]byte(response))
 		return
 	} else {
@@ -141,7 +141,7 @@ func getHandler(conn net.Conn, req []string) {
 					if err != nil {
 						log.Fatal(err)
 					}
-					var response = makeResponse(ok, types["json"], content)
+					var response = makeResponse(ok, types["json"], nil, content)
 					conn.Write([]byte(response))
 					return
 				}
@@ -176,11 +176,11 @@ func postHandler(conn net.Conn, req []string) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		response = makeResponse(created, types["json"], content)
+		response = makeResponse(created, types["json"], nil, content)
 	}
 	if action == "$image-upload" {
 		var content = []byte("Location:  /")
-		response = makeResponse(moved, "", content)
+		response = makeResponse(moved, "", nil, content)
 	}
 	conn.Write([]byte(response))
 }
@@ -207,7 +207,7 @@ func putHandler(conn net.Conn, req []string) {
 				if err != nil {
 					log.Fatal(err)
 				}
-				var response = makeResponse(ok, types["json"], content)
+				var response = makeResponse(ok, types["json"], nil, content)
 				conn.Write([]byte(response))
 				return
 			}
@@ -222,7 +222,7 @@ func deleteHandler(conn net.Conn, req []string) {
 			var id = strings.TrimLeft(path, point)
 			if id != "" {
 				if deleteUser(id) {
-					var response = makeResponse(noContent, types["json"], []byte(nil))
+					var response = makeResponse(noContent, types["json"], nil, []byte(nil))
 					conn.Write([]byte(response))
 					return
 				} else {

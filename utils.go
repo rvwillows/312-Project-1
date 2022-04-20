@@ -67,7 +67,7 @@ func saveFile(path string, data []byte) {
 	file.Sync()
 }
 
-func makeResponse(status string, mimetype string, content []byte) []byte {
+func makeResponse(status string, mimetype string, cookies []string, content []byte) []byte {
 	var length = 0
 	if mimetype != "" {
 		length = len(content)
@@ -78,6 +78,10 @@ func makeResponse(status string, mimetype string, content []byte) []byte {
 		response = append(response, []byte(mimetype)...)
 		response = append(response, []byte(cr)...)
 		response = append(response, []byte(noSniff)...)
+		response = append(response, []byte(cr)...)
+	}
+	for _, c := range cookies {
+		response = append(response, []byte("Set-Cookie: "+c)...)
 		response = append(response, []byte(cr)...)
 	}
 	if length != 0 {
@@ -127,7 +131,7 @@ func parseRequest(buffer []byte, conn net.Conn) {
 				} else if strings.Contains(subHeader, `name="xsrf_token"`) {
 
 					if !StringSliceContains(tokens, strings.ReplaceAll(string(subContent), "\r\n", "")) {
-						var response = makeResponse(forbidden, types["txt"], loadFile("403.txt"))
+						var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt"))
 						conn.Write([]byte(response))
 						return
 					}

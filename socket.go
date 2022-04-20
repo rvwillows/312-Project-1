@@ -26,7 +26,7 @@ func webSocketHandshake(conn net.Conn, req []string) []byte {
 
 	var content = "Connection: Upgrade" + cr + "Upgrade: websocket" + cr + "Sec-WebSocket-Accept: " + accept
 
-	var response = makeResponse(switching, "", []byte(content))
+	var response = makeResponse(switching, "", nil, []byte(content))
 	return response
 }
 
