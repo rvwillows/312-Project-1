@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var tokens []string = nil
@@ -158,7 +160,47 @@ func parseRequest(buffer []byte, conn net.Conn, req []string) {
 			id := addComment(comment)
 			saveFile(id+".jpg", image)
 		} else if strings.Contains(req[0], "register-form") {
-			fmt.Println(string(body))
+			user := User{}
+			var boundary = strings.Split(strings.Split(headers, "boundary=")[1], "\r\n")[0]
+			content := bytes.Split(body, []byte("--"+boundary))
+			for _, c := range content {
+				if bytes.Contains(c, []byte("\r\n\r\n")) {
+					subBytes := bytes.SplitN(c, []byte("\r\n\r\n"), 2)
+					var subHeader = string(subBytes[0])
+					var subContent = subBytes[1]
+					if strings.Contains(subHeader, `name="username"`) {
+						user.Username = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+					} else if strings.Contains(subHeader, `name="password"`) {
+						user.Password = string(subContent)
+					}
+				}
+			}
+			hash, _ := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.MinCost)
+			user.Password = string(hash)
+			addUser(user)
+		} else if strings.Contains(req[0], "login-form") {
+			user := User{}
+			var boundary = strings.Split(strings.Split(headers, "boundary=")[1], "\r\n")[0]
+			content := bytes.Split(body, []byte("--"+boundary))
+			for _, c := range content {
+				if bytes.Contains(c, []byte("\r\n\r\n")) {
+					subBytes := bytes.SplitN(c, []byte("\r\n\r\n"), 2)
+					var subHeader = string(subBytes[0])
+					var subContent = subBytes[1]
+					if strings.Contains(subHeader, `name="username"`) {
+						user.Username = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+					} else if strings.Contains(subHeader, `name="password"`) {
+						user.Password = string(subContent)
+					}
+				}
+			}
+			var user2 = getUserByName(user.Username)
+			err := bcrypt.CompareHashAndPassword([]byte(user2.Password), []byte(user.Password))
+			if err != nil {
+				var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0))
+				conn.Write([]byte(response))
+				return
+			}
 		}
 	}
 }

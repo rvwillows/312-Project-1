@@ -1,8 +1,6 @@
 package main
 
 import (
-	"math/big"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -34,14 +32,9 @@ var types = map[string]string{
 
 type User struct {
 	Id       primitive.ObjectID `bson:"_id" json:"id,omitempty"`
-	Email    string             `json:"email"`
+	Password string             `json:"password"`
 	Username string             `json:"username"`
-}
-
-type UserButBetter struct {
-	Id       *big.Int `bson:"_id" json:"id,omitempty"`
-	Email    string   `json:"email"`
-	Username string   `json:"username"`
+	Salt     string             `json:"salt"`
 }
 
 type Comment struct {

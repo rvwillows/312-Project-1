@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -151,7 +152,9 @@ func getHandler(conn net.Conn, req []string) {
 				var id = strings.TrimLeft(path, point)
 				if id != "" {
 					var user = getUser(id)
-					if user.Id == nil {
+					id := new(big.Int)
+					id.SetString(user.Id.Hex(), 16)
+					if id == nil {
 						var response []byte = contentResolve("404", nil)
 						conn.Write([]byte(response))
 						return
@@ -225,7 +228,9 @@ func putHandler(conn net.Conn, req []string) {
 					log.Fatal(err)
 				}
 				var updatedUser = updateUser(user, id)
-				if updatedUser.Id == nil {
+				id := new(big.Int)
+				id.SetString(updatedUser.Id.Hex(), 16)
+				if id == nil {
 					var response []byte = contentResolve("404", nil)
 					conn.Write([]byte(response))
 					return

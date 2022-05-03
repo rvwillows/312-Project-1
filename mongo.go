@@ -33,7 +33,7 @@ func connect(uri string) {
 	fmt.Println("Connected to MongoDB!")
 }
 
-func getUser(id string) UserButBetter {
+func getUser(id string) User {
 	userId := new(big.Int)
 	userId.SetString(id, 10)
 
@@ -42,20 +42,30 @@ func getUser(id string) UserButBetter {
 	var result User
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return UserButBetter{}
+		return User{}
 	}
 
 	err = UserCollection.
 		FindOne(ctx, bson.D{{Key: "_id", Value: objectId}}).
 		Decode(&result)
 	if err != nil {
-		return UserButBetter{}
+		return User{}
 	}
-	resultId := new(big.Int)
-	resultId.SetString(result.Id.Hex(), 16)
-	user := UserButBetter{Id: resultId, Email: result.Email, Username: result.Username}
+	user := User{Id: objectId, Password: result.Password, Username: result.Username, Salt: result.Salt}
 	return user
+}
 
+func getUserByName(name string) User {
+	var result User
+
+	err := UserCollection.
+		FindOne(ctx, bson.D{{Key: "username", Value: name}}).
+		Decode(&result)
+	if err != nil {
+		return User{}
+	}
+	user := User{Id: result.Id, Password: result.Password, Username: result.Username, Salt: result.Salt}
+	return user
 }
 
 func getComments() []Comment {
@@ -90,20 +100,18 @@ func getMessages() []Message {
 	return messages
 }
 
-func getUsers() []UserButBetter {
+func getUsers() []User {
 	cursor, err := UserCollection.Find(ctx, bson.M{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	result := User{}
-	users := []UserButBetter{}
+	users := []User{}
 	for cursor.Next(ctx) {
 		if err = cursor.Decode(&result); err != nil {
 			log.Fatal(err)
 		}
-		id := new(big.Int)
-		id.SetString(result.Id.Hex(), 16)
-		betterUser := UserButBetter{Id: id, Email: result.Email, Username: result.Username}
+		betterUser := User{Id: result.Id, Password: result.Password, Username: result.Username, Salt: result.Salt}
 		users = append(users, betterUser)
 	}
 	return users
@@ -128,20 +136,18 @@ func addMessage(message Message) string {
 	return objectID.Hex()
 }
 
-func addUser(user User) UserButBetter {
+func addUser(user User) User {
 	user.Id = primitive.NewObjectID()
 	result, err := UserCollection.InsertOne(ctx, user)
 	if err != nil {
 		log.Fatal(err)
 	}
 	objectID := result.InsertedID.(primitive.ObjectID)
-	id := new(big.Int)
-	id.SetString(objectID.Hex(), 16)
-	betterUser := UserButBetter{Id: id, Email: user.Email, Username: user.Username}
+	betterUser := User{Id: objectID, Password: user.Password, Username: user.Username, Salt: user.Salt}
 	return betterUser
 }
 
-func updateUser(user User, id string) UserButBetter {
+func updateUser(user User, id string) User {
 	user.Id = primitive.NewObjectID()
 
 	userId := new(big.Int)
@@ -150,13 +156,13 @@ func updateUser(user User, id string) UserButBetter {
 	id = fmt.Sprintf("%x", userId)
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return UserButBetter{}
+		return User{}
 	}
 
 	filter := bson.D{{Key: "_id", Value: objectId}}
 	after := options.After
 
-	update := bson.D{{Key: "$set", Value: bson.D{{Key: "email", Value: user.Email}, {Key: "username", Value: user.Username}}}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "password", Value: user.Password}, {Key: "username", Value: user.Username}, {Key: "salt", Value: user.Salt}}}}
 
 	returnOpt := options.FindOneAndUpdateOptions{
 		ReturnDocument: &after,
@@ -165,10 +171,7 @@ func updateUser(user User, id string) UserButBetter {
 	updateResult := UserCollection.FindOneAndUpdate(ctx, filter, update, &returnOpt)
 	var result User
 	_ = updateResult.Decode(&result)
-
-	newid := new(big.Int)
-	newid.SetString(string(result.Id.Hex()), 16)
-	betterUser := UserButBetter{Id: newid, Email: result.Email, Username: result.Username}
+	betterUser := User{Id: result.Id, Password: result.Password, Username: result.Username, Salt: result.Salt}
 	return betterUser
 }
 
