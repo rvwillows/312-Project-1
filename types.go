@@ -48,6 +48,11 @@ type Message struct {
 	Username string `json:"username"`
 }
 
+type Token struct {
+	Token    string `json:"token"`
+	Username string `json:"username"`
+}
+
 var switching = "HTTP/1.1 101 Switching Protocols"
 
 var ok = "HTTP/1.1 200 OK"

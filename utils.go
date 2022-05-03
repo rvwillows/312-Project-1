@@ -201,6 +201,12 @@ func parseRequest(buffer []byte, conn net.Conn, req []string) {
 				conn.Write([]byte(response))
 				return
 			}
+			var token = []byte(fmt.Sprint((rand.Int63())))
+			hash, _ := bcrypt.GenerateFromPassword(token, bcrypt.MinCost)
+			addToken(Token{Username: user2.Username, Token: string(hash)})
+			var content2 = []byte("Location:  /")
+			var response = makeResponse(moved, "", []string{"Token=" + string(token) + "; Max-Age=3600; HttpOnly"}, content2)
+			conn.Write([]byte(response))
 		}
 	}
 }

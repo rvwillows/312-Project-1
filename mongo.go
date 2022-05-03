@@ -15,6 +15,7 @@ import (
 var UserCollection *mongo.Collection
 var CommentCollection *mongo.Collection
 var MessageCollection *mongo.Collection
+var TokenCollection *mongo.Collection
 var ctx = context.Background()
 
 func connect(uri string) {
@@ -30,6 +31,7 @@ func connect(uri string) {
 	UserCollection = database.Collection("users")
 	CommentCollection = database.Collection("comments")
 	MessageCollection = database.Collection("message")
+	TokenCollection = database.Collection("token")
 	fmt.Println("Connected to MongoDB!")
 }
 
@@ -66,6 +68,15 @@ func getUserByName(name string) User {
 	}
 	user := User{Id: result.Id, Password: result.Password, Username: result.Username, Salt: result.Salt}
 	return user
+}
+
+func getTokenByName(name string) Token {
+	var result Token
+	err := TokenCollection.FindOne(ctx, bson.D{{Key: "username", Value: name}}).Decode(&result)
+	if err != nil {
+		return Token{}
+	}
+	return result
 }
 
 func getComments() []Comment {
@@ -145,6 +156,15 @@ func addUser(user User) User {
 	objectID := result.InsertedID.(primitive.ObjectID)
 	betterUser := User{Id: objectID, Password: user.Password, Username: user.Username, Salt: user.Salt}
 	return betterUser
+}
+
+func addToken(token Token) string {
+	result, err := TokenCollection.InsertOne(ctx, token)
+	if err != nil {
+		log.Fatal(err)
+	}
+	objectID := result.InsertedID.(primitive.ObjectID)
+	return objectID.Hex()
 }
 
 func updateUser(user User, id string) User {
