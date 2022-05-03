@@ -7,11 +7,13 @@ import (
 )
 
 var router = map[string]string{
-	"/hello":        "hello.txt",
-	"/hi":           "/hello",
-	"/":             "index.html",
-	"/users":        "$users",
-	"/image-upload": "$image-upload",
+	"/hello":         "hello.txt",
+	"/hi":            "/hello",
+	"/":              "index.html",
+	"/users":         "$users",
+	"/image-upload":  "$image-upload",
+	"/register-form": "$register",
+	"/login-form":    "$login",
 }
 
 var exposed = []string{

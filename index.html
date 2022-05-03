@@ -1,53 +1,79 @@
 <html>
+
 <head>
     <title>CSE312 Sample Front End</title>
-    <link rel="stylesheet" type="text/css" href="/style.css"/>
+    <link rel="stylesheet" type="text/css" href="/style.css" />
 </head>
+
 <body onload="welcome();">
 
-<h1>CSE312 Sample Page</h1>
+    <h1>CSE312 Sample Page</h1>
 
-<p id="paragraph">
-    This text is from the HTML file 🙂
-</p>
+    <form action="/login-form" id="login-form" method="post" enctype="multipart/form-data">
+        <label for="login-form-username">Username: </label>
+        <input type="text" id="login-form-username" name="username">
+        <br>
+        <label for="login-form-password">Password: </label>
+        <input type="text" id="login-form-password" name="password">
+        <br>
+        <input type="submit" value="Login">
+    </form>
 
-<p>
-    Here's a flamingo:
-</p>
+    <br>
+    <br>
 
-<img src="/image/kitten.jpg" alt="It's a flamingo" class="my_image"/>
+    <form action="/register-form" id="register-form" method="post" enctype="multipart/form-data">
+        <label for="register-form-username">Username: </label>
+        <input type="text" id="register-form-username" name="username">
+        <br>
+        <label for="register-form-password">Password: </label>
+        <input type="text" id="register-form-password" name="password">
+        <br>
+        <input type="submit" value="Register">
+    </form>
 
-<h1>Number of page visits: {{pageVisits}}</h1>
+    <p id="paragraph">
+        This text is from the HTML file 🙂
+    </p>
 
-<label for="chat-comment">Chat: </label>
-<input id="chat-comment" type="text" name="comment">
+    <p>
+        Here's a flamingo:
+    </p>
 
-<button onclick="sendMessage()">Send</button>
+    <img src="/image/kitten.jpg" alt="It's a flamingo" class="my_image" />
 
-<div id="chat"></div>
+    <h1>Number of page visits: {{pageVisits}}</h1>
 
-<br/>
-<button onclick="startVideo()">Start My Video</button>
-<br/>
-<button onclick="connectWebRTC()">Start Video Chat</button>
-<br/>
+    <label for="chat-comment">Chat: </label>
+    <input id="chat-comment" type="text" name="comment">
 
-<video id="myVideo" autoplay muted></video>
-<br/>
-<video id="otherVideo" autoplay></video>
+    <button onclick="sendMessage()">Send</button>
 
-<form action="/image-upload" id="image-form" method="post" enctype="multipart/form-data">
-    <input value="GOOSE12345" name="xsrf_token" hidden>
-    <label for="image-form-comment">Comment: </label>
-    <textarea id="image-form-comment" name="comment" cols="40" rows="6"></textarea>
-    <br/>
-    <label for="form-file">Image: </label>
-    <input id="form-file" type="file" name="upload">
-    <input type="submit" value="Post">
- </form>
+    <div id="chat"></div>
 
- {{data}}
+    <br />
+    <button onclick="startVideo()">Start My Video</button>
+    <br />
+    <button onclick="connectWebRTC()">Start Video Chat</button>
+    <br />
 
-<script src="/functions.js"></script>
+    <video id="myVideo" autoplay muted></video>
+    <br />
+    <video id="otherVideo" autoplay></video>
+
+    <form action="/image-upload" id="image-form" method="post" enctype="multipart/form-data">
+        <input value="GOOSE12345" name="xsrf_token" hidden>
+        <label for="image-form-comment">Comment: </label>
+        <textarea id="image-form-comment" name="comment" cols="40" rows="6"></textarea>
+        <br />
+        <label for="form-file">Image: </label>
+        <input id="form-file" type="file" name="upload">
+        <input type="submit" value="Post">
+    </form>
+
+    {{data}}
+
+    <script src="/functions.js"></script>
 </body>
+
 </html>

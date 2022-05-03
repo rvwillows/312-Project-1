@@ -40,7 +40,9 @@ func webSocketServer(conn net.Conn) {
 		buffer := make([]byte, 1024)
 		_, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("Read error: ", err.Error())
+			fmt.Println("Read error 4: ", err.Error())
+			delete(actitveConnections, username)
+			return
 		}
 		var opcode = buffer[0] & 15
 		var maskBit = (buffer[1] & 128) / 128
@@ -63,7 +65,7 @@ func webSocketServer(conn net.Conn) {
 				newBuffer := make([]byte, 1024)
 				_, err := conn.Read(newBuffer)
 				if err != nil {
-					fmt.Println("Read error: ", err.Error())
+					fmt.Println("Read error 5: ", err.Error())
 				}
 				buffer = append(buffer, newBuffer...)
 			}
@@ -79,7 +81,7 @@ func webSocketServer(conn net.Conn) {
 
 		if maskBit == 1 {
 			var counter = 0
-			for i, _ := range payload {
+			for i := range payload {
 				payload[i] = payload[i] ^ mask[counter]
 				counter = counter + 1
 				if counter == 4 {

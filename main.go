@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -31,14 +32,14 @@ func handleConnection(conn net.Conn) {
 	buffer := make([]byte, 1024)
 	_, err := conn.Read(buffer)
 	if err != nil {
-		fmt.Println("Read error: ", err.Error())
+		fmt.Println("Read error: 3", err.Error())
 	}
 
 	req := strings.Split(string(buffer), "\r\n")
 	if strings.HasPrefix(req[0], "GET") {
 		getHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "POST") {
-		parseRequest(buffer, conn)
+		parseRequest(buffer, conn, req)
 		postHandler(conn, req)
 	} else if strings.HasPrefix(req[0], "PUT") {
 		putHandler(conn, req)
@@ -48,7 +49,7 @@ func handleConnection(conn net.Conn) {
 	conn.Close()
 }
 
-func contentResolve(path string) []byte {
+func contentResolve(path string, cookies map[string]string) []byte {
 	var status string = ""
 	var mimetype string = ""
 	var content []byte = nil
@@ -58,11 +59,11 @@ func contentResolve(path string) []byte {
 		status = ok
 		var split = strings.Split(path, ".")
 		mimetype = types[split[len(split)-1]]
-		content = loadFile(path)
+		content = loadFile(path, 0)
 		if content == nil {
 			status = notFound
 			mimetype = types["txt"]
-			content = loadFile("404.txt")
+			content = loadFile("404.txt", 0)
 		}
 		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response
@@ -89,23 +90,31 @@ func contentResolve(path string) []byte {
 				var response []byte = makeResponse(status, mimetype, nil, content)
 				return response
 			}
-
 		} else if strings.HasPrefix(path, "/") {
 			status = moved
 			content = []byte("Location: " + path)
 			var response []byte = makeResponse(status, mimetype, nil, content)
 			return response
 			// Otherwise, its a file and we can simply load in
+		} else if strings.HasPrefix(path, "index.html") {
+			visits, _ := strconv.Atoi(cookies["visits"])
+			visits = visits + 1
+			status = ok
+			var split = strings.Split(path, ".")
+			mimetype = types[split[len(split)-1]]
+			content = loadFile(path, visits)
+			var response []byte = makeResponse(status, mimetype, []string{"visits=" + fmt.Sprint(visits) + "; Max-Age=3600; Path=/"}, content)
+			return response
 		} else {
 			status = ok
 			var split = strings.Split(path, ".")
 			mimetype = types[split[len(split)-1]]
 		}
-		content = loadFile(path)
+		content = loadFile(path, 0)
 		if content == nil {
 			status = notFound
 			mimetype = types["txt"]
-			content = loadFile("404.txt")
+			content = loadFile("404.txt", 0)
 		}
 		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response
@@ -114,6 +123,16 @@ func contentResolve(path string) []byte {
 
 func getHandler(conn net.Conn, req []string) {
 	var path string = strings.Split(req[0], " ")[1]
+	cookies := make(map[string]string)
+	for _, s := range req {
+		if strings.Contains(s, "Cookie") {
+			var cookieList = strings.Split(strings.Replace(s, "Cookie: ", "", 1), "; ")
+			for _, s := range cookieList {
+				var cookie = strings.Split(s, "=")
+				cookies[cookie[0]] = cookie[1]
+			}
+		}
+	}
 	if path == "/websocket" {
 		var response = webSocketHandshake(conn, req)
 		conn.Write(response)
@@ -133,7 +152,7 @@ func getHandler(conn net.Conn, req []string) {
 				if id != "" {
 					var user = getUser(id)
 					if user.Id == nil {
-						var response []byte = contentResolve("404")
+						var response []byte = contentResolve("404", nil)
 						conn.Write([]byte(response))
 						return
 					}
@@ -147,7 +166,7 @@ func getHandler(conn net.Conn, req []string) {
 				}
 			}
 		}
-		var response []byte = contentResolve(path)
+		var response []byte = contentResolve(path, cookies)
 		conn.Write([]byte(response))
 	}
 }
@@ -182,6 +201,14 @@ func postHandler(conn net.Conn, req []string) {
 		var content = []byte("Location:  /")
 		response = makeResponse(moved, "", nil, content)
 	}
+	if action == "$register" {
+		var content = []byte("Location:  /")
+		response = makeResponse(moved, "", nil, content)
+	}
+	if action == "$login" {
+		var content = []byte("Location:  /")
+		response = makeResponse(moved, "", nil, content)
+	}
 	conn.Write([]byte(response))
 }
 
@@ -199,7 +226,7 @@ func putHandler(conn net.Conn, req []string) {
 				}
 				var updatedUser = updateUser(user, id)
 				if updatedUser.Id == nil {
-					var response []byte = contentResolve("404")
+					var response []byte = contentResolve("404", nil)
 					conn.Write([]byte(response))
 					return
 				}
@@ -226,7 +253,7 @@ func deleteHandler(conn net.Conn, req []string) {
 					conn.Write([]byte(response))
 					return
 				} else {
-					var response []byte = contentResolve("404")
+					var response []byte = contentResolve("404", nil)
 					conn.Write([]byte(response))
 					return
 				}

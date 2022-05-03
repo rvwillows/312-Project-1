@@ -21,7 +21,7 @@ func StringSliceContains(slice []string, str string) bool {
 	return false
 }
 
-func loadFile(path string) []byte {
+func loadFile(path string, visits int) []byte {
 	if strings.HasPrefix(path, "/") {
 		path = "." + path
 	} else {
@@ -43,10 +43,11 @@ func loadFile(path string) []byte {
 			var token = fmt.Sprint((rand.Int63()))
 			tokens = append(tokens, token)
 			dat = []byte(strings.Replace(string(dat), "GOOSE12345", token, 1))
+			dat = []byte(strings.Replace(string(dat), "{{pageVisits}}", fmt.Sprint(visits), 1))
 		}
 		return dat
 	} else {
-		fmt.Println("File read error: ", err.Error())
+		fmt.Println("File read error 1: ", err.Error())
 		return nil
 	}
 }
@@ -99,11 +100,23 @@ func makeResponse(status string, mimetype string, cookies []string, content []by
 	return response
 }
 
-func parseRequest(buffer []byte, conn net.Conn) {
+func parseRequest(buffer []byte, conn net.Conn, req []string) {
 	splitBuffer := bytes.SplitN(buffer, []byte("\r\n\r\n"), 2)
 	var headers = string(splitBuffer[0])
-	var body = splitBuffer[1]
-
+	var body = []byte{}
+	if len(splitBuffer) < 2 {
+		buffer2 := make([]byte, 1024)
+		_, err := conn.Read(buffer2)
+		if err != nil {
+			fmt.Println("Read error 2: ", err.Error())
+		}
+		buffer = append(buffer, buffer2...)
+		splitBuffer := bytes.SplitN(buffer, []byte("\r\n\r\n"), 2)
+		headers = string(splitBuffer[0])
+		body = splitBuffer[1]
+	} else {
+		body = splitBuffer[1]
+	}
 	var mimetype = strings.Split(strings.Split(headers, "Content-Type: ")[1], ";")[0]
 	contentLength, _ := strconv.Atoi(strings.Split(strings.Split(headers, "Content-Length: ")[1], "\r\n")[0])
 
@@ -111,37 +124,41 @@ func parseRequest(buffer []byte, conn net.Conn) {
 		buffer := make([]byte, 1024)
 		_, err := conn.Read(buffer)
 		if err != nil {
-			fmt.Println("Read error: ", err.Error())
+			fmt.Println("Read error 2: ", err.Error())
 		}
 		body = append(body, buffer...)
 	}
 
 	if mimetype == "multipart/form-data" {
-		comment := Comment{}
-		var boundary = strings.Split(strings.Split(headers, "boundary=")[1], "\r\n")[0]
-		content := bytes.Split(body, []byte("--"+boundary))
-		var image []byte = nil
-		for _, c := range content {
-			if bytes.Contains(c, []byte("\r\n\r\n")) {
-				subBytes := bytes.SplitN(c, []byte("\r\n\r\n"), 2)
-				var subHeader = string(subBytes[0])
-				var subContent = subBytes[1]
-				if strings.Contains(subHeader, `name="comment"`) {
-					comment.Message = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
-				} else if strings.Contains(subHeader, `name="xsrf_token"`) {
+		if strings.Contains(req[0], "image-upload") {
+			comment := Comment{}
+			var boundary = strings.Split(strings.Split(headers, "boundary=")[1], "\r\n")[0]
+			content := bytes.Split(body, []byte("--"+boundary))
+			var image []byte = nil
+			for _, c := range content {
+				if bytes.Contains(c, []byte("\r\n\r\n")) {
+					subBytes := bytes.SplitN(c, []byte("\r\n\r\n"), 2)
+					var subHeader = string(subBytes[0])
+					var subContent = subBytes[1]
+					if strings.Contains(subHeader, `name="comment"`) {
+						comment.Message = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(string(subContent), "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+					} else if strings.Contains(subHeader, `name="xsrf_token"`) {
 
-					if !StringSliceContains(tokens, strings.ReplaceAll(string(subContent), "\r\n", "")) {
-						var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt"))
-						conn.Write([]byte(response))
-						return
+						if !StringSliceContains(tokens, strings.ReplaceAll(string(subContent), "\r\n", "")) {
+							var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0))
+							conn.Write([]byte(response))
+							return
+						}
+					} else if strings.Contains(subHeader, `name="upload"`) {
+						comment.Image = strings.ReplaceAll(strings.Split(strings.Split(subHeader, "filename=")[1], "\r\n")[0], `"`, "")
+						image = subContent
 					}
-				} else if strings.Contains(subHeader, `name="upload"`) {
-					comment.Image = strings.ReplaceAll(strings.Split(strings.Split(subHeader, "filename=")[1], "\r\n")[0], `"`, "")
-					image = subContent
 				}
 			}
+			id := addComment(comment)
+			saveFile(id+".jpg", image)
+		} else if strings.Contains(req[0], "register-form") {
+			fmt.Println(string(body))
 		}
-		id := addComment(comment)
-		saveFile(id+".jpg", image)
 	}
 }
