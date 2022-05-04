@@ -60,11 +60,11 @@ func contentResolve(path string, cookies map[string]string) []byte {
 		status = ok
 		var split = strings.Split(path, ".")
 		mimetype = types[split[len(split)-1]]
-		content = loadFile(path, 0)
+		content = loadFile(path, 0, "")
 		if content == nil {
 			status = notFound
 			mimetype = types["txt"]
-			content = loadFile("404.txt", 0)
+			content = loadFile("404.txt", 0, "")
 		}
 		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response
@@ -99,11 +99,12 @@ func contentResolve(path string, cookies map[string]string) []byte {
 			// Otherwise, its a file and we can simply load in
 		} else if strings.HasPrefix(path, "index.html") {
 			visits, _ := strconv.Atoi(cookies["visits"])
+			var token = cookies["token"]
 			visits = visits + 1
 			status = ok
 			var split = strings.Split(path, ".")
 			mimetype = types[split[len(split)-1]]
-			content = loadFile(path, visits)
+			content = loadFile(path, visits, token)
 			var response []byte = makeResponse(status, mimetype, []string{"visits=" + fmt.Sprint(visits) + "; Max-Age=3600; Path=/"}, content)
 			return response
 		} else {
@@ -111,11 +112,11 @@ func contentResolve(path string, cookies map[string]string) []byte {
 			var split = strings.Split(path, ".")
 			mimetype = types[split[len(split)-1]]
 		}
-		content = loadFile(path, 0)
+		content = loadFile(path, 0, "")
 		if content == nil {
 			status = notFound
 			mimetype = types["txt"]
-			content = loadFile("404.txt", 0)
+			content = loadFile("404.txt", 0, "")
 		}
 		var response []byte = makeResponse(status, mimetype, nil, content)
 		return response

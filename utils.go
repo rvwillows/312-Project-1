@@ -23,7 +23,7 @@ func StringSliceContains(slice []string, str string) bool {
 	return false
 }
 
-func loadFile(path string, visits int) []byte {
+func loadFile(path string, visits int, userToken string) []byte {
 	if strings.HasPrefix(path, "/") {
 		path = "." + path
 	} else {
@@ -46,6 +46,18 @@ func loadFile(path string, visits int) []byte {
 			tokens = append(tokens, token)
 			dat = []byte(strings.Replace(string(dat), "GOOSE12345", token, 1))
 			dat = []byte(strings.Replace(string(dat), "{{pageVisits}}", fmt.Sprint(visits), 1))
+
+			var tokens = getTokens()
+			var userToken2 = Token{}
+			for _, t := range tokens {
+				err := bcrypt.CompareHashAndPassword([]byte(t.Token), []byte(userToken))
+				if err == nil {
+					userToken2 = t
+					break
+				}
+			}
+			dat = []byte(strings.Replace(string(dat), "{{username}}", userToken2.Username, 1))
+
 		}
 		return dat
 	} else {
@@ -147,7 +159,7 @@ func parseRequest(buffer []byte, conn net.Conn, req []string) {
 					} else if strings.Contains(subHeader, `name="xsrf_token"`) {
 
 						if !StringSliceContains(tokens, strings.ReplaceAll(string(subContent), "\r\n", "")) {
-							var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0))
+							var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0, ""))
 							conn.Write([]byte(response))
 							return
 						}
@@ -197,7 +209,7 @@ func parseRequest(buffer []byte, conn net.Conn, req []string) {
 			var user2 = getUserByName(user.Username)
 			err := bcrypt.CompareHashAndPassword([]byte(user2.Password), []byte(user.Password))
 			if err != nil {
-				var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0))
+				var response = makeResponse(forbidden, types["txt"], nil, loadFile("403.txt", 0, ""))
 				conn.Write([]byte(response))
 				return
 			}

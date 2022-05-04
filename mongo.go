@@ -70,9 +70,9 @@ func getUserByName(name string) User {
 	return user
 }
 
-func getTokenByName(name string) Token {
+func getTokenByHash(hash string) Token {
 	var result Token
-	err := TokenCollection.FindOne(ctx, bson.D{{Key: "username", Value: name}}).Decode(&result)
+	err := TokenCollection.FindOne(ctx, bson.D{{Key: "token", Value: hash}}).Decode(&result)
 	if err != nil {
 		return Token{}
 	}
@@ -126,6 +126,22 @@ func getUsers() []User {
 		users = append(users, betterUser)
 	}
 	return users
+}
+
+func getTokens() []Token {
+	cursor, err := TokenCollection.Find(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err)
+	}
+	result := Token{}
+	tokens := []Token{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(&result); err != nil {
+			log.Fatal(err)
+		}
+		tokens = append(tokens, result)
+	}
+	return tokens
 }
 
 func addComment(comment Comment) string {
