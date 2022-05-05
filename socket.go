@@ -6,9 +6,10 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var actitveConnections map[string]net.Conn
@@ -30,8 +31,25 @@ func webSocketHandshake(conn net.Conn, req []string) []byte {
 	return response
 }
 
-func webSocketServer(conn net.Conn) {
-	var username = "Goose#" + fmt.Sprint(rand.Intn(9999))
+func webSocketServer(conn net.Conn, token string) {
+	var tokens = getTokens()
+	var userToken = Token{}
+	for _, t := range tokens {
+		err := bcrypt.CompareHashAndPassword([]byte(t.Token), []byte(token))
+		if err == nil {
+			userToken = t
+			break
+		}
+	}
+
+	if (userToken == Token{}) {
+		var res = makeFrame([]byte(""))
+		conn.Write(res)
+
+		return
+	}
+
+	var username = userToken.Username
 	if actitveConnections == nil {
 		actitveConnections = make(map[string]net.Conn)
 	}

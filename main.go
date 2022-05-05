@@ -138,7 +138,7 @@ func getHandler(conn net.Conn, req []string) {
 	if path == "/websocket" {
 		var response = webSocketHandshake(conn, req)
 		conn.Write(response)
-		webSocketServer(conn)
+		webSocketServer(conn, cookies["token"])
 	} else if path == "/chat-history" {
 		content, err := json.Marshal(getMessages())
 		if err != nil {

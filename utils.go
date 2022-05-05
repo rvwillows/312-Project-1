@@ -213,12 +213,22 @@ func parseRequest(buffer []byte, conn net.Conn, req []string) {
 				conn.Write([]byte(response))
 				return
 			}
-			var token = []byte(fmt.Sprint((rand.Int63())))
-			hash, _ := bcrypt.GenerateFromPassword(token, bcrypt.MinCost)
+			var token = randomString(100)
+			hash, _ := bcrypt.GenerateFromPassword([]byte(token), bcrypt.MinCost)
 			addToken(Token{Username: user2.Username, Token: string(hash)})
 			var content2 = []byte("Location:  /")
-			var response = makeResponse(moved, "", []string{"Token=" + string(token) + "; Max-Age=3600; HttpOnly"}, content2)
+			var response = makeResponse(moved, "", []string{"token=" + string(token) + "; Max-Age=3600; HttpOnly"}, content2)
 			conn.Write([]byte(response))
 		}
 	}
+}
+
+func randomString(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
 }
