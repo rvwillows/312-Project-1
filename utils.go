@@ -42,7 +42,7 @@ func loadFile(path string, visits int, userToken string) []byte {
 				commentString = commentString + "<br>" + comment.Message + "</br>"
 			}
 			dat = []byte(strings.Replace(string(dat), "{{data}}", commentString, 1))
-			var token = fmt.Sprint((rand.Int63()))
+			var token = randomString(100)
 			tokens = append(tokens, token)
 			dat = []byte(strings.Replace(string(dat), "GOOSE12345", token, 1))
 			dat = []byte(strings.Replace(string(dat), "{{pageVisits}}", fmt.Sprint(visits), 1))
@@ -56,6 +56,10 @@ func loadFile(path string, visits int, userToken string) []byte {
 					break
 				}
 			}
+
+			var chatToken = randomString(100)
+			dat = []byte(strings.Replace(string(dat), "SIMON12345", chatToken, 1))
+			addToken(Token{Token: chatToken, Username: userToken2.Username})
 			dat = []byte(strings.Replace(string(dat), "{{username}}", userToken2.Username, 1))
 
 		}

@@ -121,17 +121,21 @@ func webSocketServer(conn net.Conn, token string) {
 			json.Unmarshal(payload, &result)
 
 			if result["messageType"] == "chatMessage" {
-				var messageText = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(result["comment"], "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
-				messageObject := new(Message)
-				messageObject.Message = messageText
-				messageObject.Username = username
-				addMessage(*messageObject)
+				var userToken2 = getTokenByHash(result["token"])
+				if userToken2.Username == username {
 
-				message := map[string]string{"messageType": "chatMessage", "username": username, "comment": messageText}
-				response, _ := json.Marshal(&message)
-				var res = makeFrame(response)
-				for _, c := range actitveConnections {
-					c.Write(res)
+					var messageText = strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(result["comment"], "&", "&amp;"), "<", "&lt;"), ">", "&gt;")
+					messageObject := new(Message)
+					messageObject.Message = messageText
+					messageObject.Username = username
+					addMessage(*messageObject)
+
+					message := map[string]string{"messageType": "chatMessage", "username": username, "comment": messageText}
+					response, _ := json.Marshal(&message)
+					var res = makeFrame(response)
+					for _, c := range actitveConnections {
+						c.Write(res)
+					}
 				}
 			} else if result["messageType"] == "webRTC-offer" || result["messageType"] == "webRTC-answer" || result["messageType"] == "webRTC-candidate" {
 				var frame = makeFrame(payload)

@@ -14,10 +14,11 @@ document.addEventListener("keypress", function (event) {
 function sendMessage() {
     const chatBox = document.getElementById("chat-comment");
     const comment = chatBox.value;
+    const token = document.getElementById("chatToken").value;
     chatBox.value = "";
     chatBox.focus();
     if (comment !== "") {
-        socket.send(JSON.stringify({'messageType': 'chatMessage', 'comment': comment}));
+        socket.send(JSON.stringify({'messageType': 'chatMessage', 'comment': comment, 'token': token}));
     }
 }
 
